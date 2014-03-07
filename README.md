@@ -4,6 +4,21 @@ site-security-tools
 A set of tools to enhance the security of web-sites.
 
 
+Rationale
+=========
+
+Software such as Samhain or Tripwire already solves this problem, 
+however these programs are not always applicable. For example, when 
+you're using a shared hosting service, you are most likely running
+inside a sandboxed environment, you cannot install third-party 
+software, etc.
+
+`site-security-tools` are self-contained instruments that don't 
+require anything except a standard Python 2.x installation (tested
+with 2.7 installed from sources).
+
+
+
 dirwatcher
 ----------
 
@@ -25,10 +40,12 @@ your cron is configured to do that).
 
 
 TODO
-^^^^
+----
 
 - add option to watch multiple directories, or get the directory
   to watch via a command line argument, then create multiple
   cron jobs for each dir you're interested in.
 
 - add file filtering by masks
+
+- check file sizes before hashing, only hash if the size changed
