@@ -38,6 +38,12 @@ produced in subsequent runs will be compared with the previous
 data and differences will be reported by email (provided that 
 your cron is configured to do that).
 
+Example of use:
+
+- `python dirwatcher.py /var/www/wordpress` - scan the directory `/var/www/wordpress`
+- `python dirwatcher.py /var/www/wordpress -i cache .tmp` - scan the directory `/var/www/wordpress` ignoring any file the full path to which contains `cache` or `.tmp`
+- `python dirwatcher.py /var/www/wordpress -i cache .tmp --store /var/data/dirwalker/` - scan the directory `/var/www/wordpress` ignoring any file the full path to which contains `cache` or `.tmp`, persist the state in `/var/data/dirwalker'
+
 
 TODO
 ----
