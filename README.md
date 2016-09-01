@@ -51,7 +51,4 @@ TODO
 - add option to watch multiple directories, or get the directory
   to watch via a command line argument, then create multiple
   cron jobs for each dir you're interested in.
-
 - add file filtering by masks
-
-- check file sizes before hashing, only hash if the size changed
