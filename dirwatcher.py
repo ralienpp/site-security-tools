@@ -23,12 +23,17 @@ def HashFile(path):
 
 
 
-def BuildTree(path, exceptions=None):
+def BuildTree(path, exceptions=None, maxsize=None):
     tree = {}
     for dirName, subDirs, files in os.walk(path):
         #add found files to index
         for item in files:
             fullPath = os.path.join(dirName, item)
+            size = os.path.getsize(fullPath)
+            # import pdb; pdb.set_trace()
+            if maxsize and size > maxsize:
+                # print 'skipping ', fullPath
+                continue
             fingerprint = HashFile(fullPath)
             tree[fullPath] = fingerprint
 
@@ -84,9 +89,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('path', help='Full path to directory to scan', type=str)
     parser.add_argument('--store', help='Directory for storage of state between runs',
-    	                type=str, default='~/.dirwalker')
+                        type=str, default='~/.dirwalker')
     parser.add_argument('-i', '--ignore', help='Comma-separated list of entries to ignore',
-		                nargs='*', default=None)
+                        nargs='*', default=None)
+    parser.add_argument('--maxsize', help='Only hash files smaller than this many BYTES',
+                        type=int, default=None)
 
 
     args = parser.parse_args()
@@ -105,16 +112,16 @@ if __name__ == '__main__':
         print err
         print 'no original tree exists, building it'
         print 'this will take a while'
-        tree = BuildTree(PATH, IGNORE)
+        tree = BuildTree(PATH, IGNORE, args.maxsize)
         DumpTree(tree, 'canonical.tree') #will be subsequently updated
         DumpTree(tree, 'canonical.tree-start-point') #always constant
         print 'Done, quitting.'
         sys.exit(0)
     else:
-    	# we've found an earlier tree, let's build a new one and compare
-    	# we're not printing anything to stdout, not to cause unnecessary emails
-    	# sent by cron; we print only if the admin's attention is required
-        currentTree = BuildTree(PATH, IGNORE)
+        # we've found an earlier tree, let's build a new one and compare
+        # we're not printing anything to stdout, not to cause unnecessary emails
+        # sent by cron; we print only if the admin's attention is required
+        currentTree = BuildTree(PATH, IGNORE, args.maxsize)
         delta = dict_diff(original, currentTree)
         if delta:
             DumpTree(currentTree, '%s.tree' % timestamp)
@@ -129,5 +136,5 @@ if __name__ == '__main__':
             os.rename('%s.tree' % timestamp, 'canonical.tree')
             print 'Done'
         else:
-        	# no changes were detected
+            # no changes were detected
             pass
