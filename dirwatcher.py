@@ -5,10 +5,13 @@ import hashlib
 import pickle
 import time
 import shutil
+import argparse
+import sys
 
 BLOCK = 2**16 #for reading file chunks
 
 def HashFile(path):
+    '''Compute the hash of a file specified by the full path to it'''
     f = open(path, 'rb')
     digest = hashlib.md5()
     chunk = f.read(BLOCK)
@@ -17,10 +20,10 @@ def HashFile(path):
         chunk = f.read(BLOCK)
     f.close()
     return digest.hexdigest()
-    
 
 
-def BuildTree(path, exceptions=[]):
+
+def BuildTree(path, exceptions=None):
     tree = {}
     for dirName, subDirs, files in os.walk(path):
         #add found files to index
@@ -30,9 +33,10 @@ def BuildTree(path, exceptions=[]):
             tree[fullPath] = fingerprint
 
         #remove ignored directories, if necessary
-        for item in exceptions:
-            if item in subDirs:
-                subDirs.remove(item)
+        if exceptions:
+            for item in exceptions:
+                if item in subDirs:
+                    subDirs.remove(item)
 
     return tree
 
@@ -42,27 +46,19 @@ def PrintTree(tree):
         print '%s\t%s' % (value, key)
 
 
-def CompareTrees(new, original):
-    '''Returns keys present in new, but not present in original'''
-    delta = set(new.keys()) - set(original.keys())
-    return delta
-
 def DumpTree(obj, path):
+    '''Store the directory tree and hashes in a pickle at the given path'''
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
 
 def GetTree(path):
+    '''Load a directory tree and accompanying hashes from a pickle
+    produced at the previous run'''
     with open(path, 'rb') as f:
-        obj=pickle.load(f)
+        obj = pickle.load(f)
     return obj
-    
-'''def dict_diff(d1, d2, NO_KEY='<KEYNOTFOUND>'):
-    both = set(d1.keys()) & set(d2.keys())
-    diff = {k:(d1[k], d2[k]) for k in both if d1[k] != d2[k]}
-    diff.update({k:(d1[k], NO_KEY) for k in d1.keys() - both})
-    diff.update({k:(NO_KEY, d2[k]) for k in d2.keys() - both})
-    return diff
-'''
+
+
 def dict_diff(first, second):
     """ Return a dict of keys that differ with another config object.  If a value is
         not found in one fo the configs, it will be represented by KEYNOTFOUND.
@@ -74,38 +70,55 @@ def dict_diff(first, second):
     diff = {}
     # Check all keys in first dict
     for key in first.keys():
-        if (not second.has_key(key)):
+        if key not in second:
             diff[key] = (first[key], KEYNOTFOUND)
-        elif (first[key] != second[key]):
+        elif first[key] != second[key]:
             diff[key] = (first[key], second[key])
     # Check all keys in second dict to find missing
     for key in second.keys():
-        if (not first.has_key(key)):
+        if key not in first:
             diff[key] = (KEYNOTFOUND, second[key])
     return diff
 
 if __name__ == '__main__':
-    PATH='/home7/raileann/public_html/__lazybit'#'/home/alex/workspace'
-    IGNORE=['cache']
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', help='Full path to directory to scan', type=str)
+    parser.add_argument('--store', help='Directory for storage of state between runs',
+    	                type=str, default='~/.dirwalker')
+    parser.add_argument('-i', '--ignore', help='Comma-separated list of entries to ignore',
+		                nargs='*', default=None)
+
+
+    args = parser.parse_args()
+
+    PATH = args.path
+    IGNORE = args.ignore
     timestamp = time.strftime('%Y-%d-%m-%H-%M-%S')
 
-    os.chdir('/home7/raileann/opt/walker')
+    if not os.path.exists(args.store):
+        os.makedirs(args.store)
+    os.chdir(args.store)
 
-    #import pdb
     try:
         original = GetTree('canonical.tree')
-        #print 'Found tree, comparing delta'
+    except IOError, err:
+        print err
+        print 'no original tree exists, building it'
+        print 'this will take a while'
+        tree = BuildTree(PATH, IGNORE)
+        DumpTree(tree, 'canonical.tree') #will be subsequently updated
+        DumpTree(tree, 'canonical.tree-start-point') #always constant
+        print 'Done, quitting.'
+        sys.exit(0)
+    else:
+    	# we've found an earlier tree, let's build a new one and compare
+    	# we're not printing anything to stdout, not to cause unnecessary emails
+    	# sent by cron; we print only if the admin's attention is required
         currentTree = BuildTree(PATH, IGNORE)
-        #newFiles = CompareTrees(currentTree, original)
-        #if newFiles:
-        #    DumpTree(tree, '%s.tree' % timestamp)
-        #    print 'New files found'
-        #    print newFiles
-
         delta = dict_diff(original, currentTree)
         if delta:
             DumpTree(currentTree, '%s.tree' % timestamp)
-            print 'Differences found: ', len(delta.items())
+            print 'Differences found: ', len(delta)
             PrintTree(delta)
 
             #the output of the cronjob will be sent by email
@@ -116,17 +129,5 @@ if __name__ == '__main__':
             os.rename('%s.tree' % timestamp, 'canonical.tree')
             print 'Done'
         else:
-            pass #print 'No changes'
-    
-        
-    except Exception, err:
-        print err
-        print 'no original tree exists, building it'
-        print 'this will take a while'
-        tree = BuildTree(PATH, IGNORE)
-        DumpTree(tree, 'canonical.tree') #will be subsequently updated
-        DumpTree(tree, 'canonical.tree-start-point') #always constant
-        print 'Done\n\n'
-        #PrintTree(tree)
-
-
+        	# no changes were detected
+            pass
