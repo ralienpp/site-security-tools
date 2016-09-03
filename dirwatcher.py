@@ -30,12 +30,14 @@ def build_tree(path, exceptions=None, maxsize=None):
         # add found files to index
         for item in files:
             fullPath = os.path.join(dirName, item)
-            size = os.path.getsize(fullPath)
-            if maxsize and size > maxsize:
-                # print 'skipping ', fullPath
-                continue
-            fingerprint = hash_file(fullPath)
-            result[fullPath] = fingerprint
+            if os.path.isfile(fullPath):
+                size = os.path.getsize(fullPath)
+                if maxsize and size > maxsize:
+                    # print 'skipping ', fullPath
+                    continue
+                fingerprint = hash_file(fullPath)
+                result[fullPath] = fingerprint
+            # otherwise it is a symlink, we skip it
 
         # remove ignored directories, if necessary
         if exceptions:
