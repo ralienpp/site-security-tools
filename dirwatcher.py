@@ -26,7 +26,13 @@ def hash_file(path):
 
 def build_tree(path, exceptions=None, maxsize=None):
     result = {}
-    for dirName, subDirs, files in os.walk(path):
+    for dirName, subDirs, files in os.walk(path, topdown=True):
+        # remove ignored directories, if necessary
+        if exceptions:
+            for item in exceptions:
+                if item in subDirs:
+                    subDirs.remove(item)
+
         # add found files to index
         for item in files:
             fullPath = os.path.join(dirName, item)
@@ -39,11 +45,7 @@ def build_tree(path, exceptions=None, maxsize=None):
                 result[fullPath] = fingerprint
             # otherwise it is a symlink, we skip it
 
-        # remove ignored directories, if necessary
-        if exceptions:
-            for item in exceptions:
-                if item in subDirs:
-                    subDirs.remove(item)
+
 
     return result
 
