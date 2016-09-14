@@ -7,6 +7,7 @@ import time
 import shutil
 import argparse
 import sys
+from fnmatch import fnmatch
 
 BLOCK = 2**16 # for reading file chunks
 KEYNOTFOUND = '<KEYNOTFOUND>'
@@ -23,15 +24,19 @@ def hash_file(path):
     return digest.hexdigest()
 
 
-
-def build_tree(path, exceptions=None, maxsize=None):
+def build_tree(path, dir_exceptions=None, file_exceptions=None, maxsize=None):
     result = {}
     for dirName, subDirs, files in os.walk(path, topdown=True):
-        # remove ignored directories, if necessary
-        if exceptions:
-            for item in exceptions:
-                if item in subDirs:
-                    subDirs.remove(item)
+
+        if dir_exceptions:
+            # skip the subdirectories that match any of the given patterns
+            for dir_mask in dir_exceptions:
+                subDirs = [d for d in subDirs if not fnmatch(d, dir_mask)]
+
+        if file_exceptions:
+            # skip the files in this directory that match any of the given patterns
+            for file_mask in file_exceptions:
+                files = [f for f in files if not fnmatch(f, file_mask)]
 
         # add found files to index
         for item in files:
@@ -93,16 +98,22 @@ if __name__ == '__main__':
     parser.add_argument('path', help='Full path to directory to scan', type=str)
     parser.add_argument('--store', help='Directory for storage of state between runs',
                         type=str, default='~/.dirwalker')
-    parser.add_argument('-i', '--ignore', help='Comma-separated list of entries to ignore',
+    parser.add_argument('-id', '--ignore_dirs', help='Comma-separated list of entries to ignore',
+                        nargs='*', default=None)
+    parser.add_argument('-if', '--ignore_files', help='Comma-separated list of files to ignore',
                         nargs='*', default=None)
     parser.add_argument('--maxsize', help='Only hash files smaller than this many BYTES',
                         type=int, default=None)
 
 
+
     args = parser.parse_args()
 
     PATH = args.path
-    IGNORE = args.ignore
+    IGNORE_DIRS = args.ignore_dirs
+    # IGNORE_DIRS = ['.git']
+    IGNORE_FILES = args.ignore_files
+    # IGNORE_FILES = ['*cl*', '*.pyc']
     timestamp = time.strftime('%Y-%d-%m-%H-%M-%S')
 
     if not os.path.exists(args.store):
@@ -115,7 +126,7 @@ if __name__ == '__main__':
         print err
         print 'no original tree exists, building it'
         print 'this will take a while'
-        tree = build_tree(PATH, IGNORE, args.maxsize)
+        tree = build_tree(PATH, IGNORE_DIRS, IGNORE_FILES, args.maxsize)
         dump_tree(tree, 'canonical.tree') #will be subsequently updated
         dump_tree(tree, 'canonical.tree-start-point') #always constant
         print 'Done, quitting.'
@@ -124,7 +135,7 @@ if __name__ == '__main__':
         # we've found an earlier tree, let's build a new one and compare
         # we're not printing anything to stdout, not to cause unnecessary emails
         # sent by cron; we print only if the admin's attention is required
-        currentTree = build_tree(PATH, IGNORE, args.maxsize)
+        currentTree = build_tree(PATH, IGNORE_DIRS, IGNORE_FILES, args.maxsize)
         delta = dict_diff(original, currentTree)
         if delta:
             dump_tree(currentTree, '%s.tree' % timestamp)
