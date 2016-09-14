@@ -10,7 +10,7 @@ import sys
 from fnmatch import fnmatch
 
 BLOCK = 2**16 # for reading file chunks
-KEYNOTFOUND = '<KEYNOTFOUND>'
+KEYNOTFOUND = None #'<KEYNOTFOUND>'
 
 def hash_file(path):
     '''Compute the hash of a file specified by the full path to it'''
@@ -57,7 +57,14 @@ def build_tree(path, dir_exceptions=None, file_exceptions=None, maxsize=None):
 
 def print_tree(data):
     for key, value in data.iteritems():
-        print '%s\t%s' % (value, key)
+        old, new = key
+        if old is None:
+            status = 'Added'
+        elif new is None:
+            status = 'Deleted'
+        else:
+            status = 'Modified'
+        print '%s\t%s' % (status, key)
 
 
 def dump_tree(obj, path):
