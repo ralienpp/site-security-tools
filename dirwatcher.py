@@ -57,7 +57,7 @@ def build_tree(path, dir_exceptions=None, file_exceptions=None, maxsize=None):
 
 def print_tree(data):
     for key, value in data.iteritems():
-        old, new = key
+        old, new = value
         if old is None:
             status = 'Added'
         elif new is None:
