@@ -41,9 +41,8 @@ your cron is configured to do that).
 Example of use:
 
 - `python dirwatcher.py /var/www/wordpress` - scan the directory `/var/www/wordpress`
-- `python dirwatcher.py /var/www/wordpress -i cache .tmp` - scan the directory `/var/www/wordpress` ignoring any file the full path to which contains `cache` or `.tmp`
-- `python dirwatcher.py /var/www/wordpress --ignore cache .tmp --store /var/data/dirwalker/` - scan the directory `/var/www/wordpress` ignoring any file the full path to which contains `cache` or `.tmp`, persist the state in `/var/data/dirwalker'
-- `python dirwatcher.py /var/www/wordpress --ignore cache .tmp --store /var/data/dirwalker/ --maxsize 500000` - scan the directory `/var/www/wordpress` ignoring any file the full path to which contains `cache` or `.tmp`, persist the state in `/var/data/dirwalker', ignoring files above `500000` Bytes in size
+- `python dirwatcher.py /var/www/ --ignore_files *.cache.php error.log` - scan `/var/www` and ignore all files ending in `.cache.php` as well as those named `error.log`
+- `python dirwatcher.py /var/www/wordpress --ignore_dir cache temp --store /var/data/dirwalker/ --maxsize 500000` - scan the directory `/var/www/wordpress` ignoring any directory called `cache` or `temp`, persist the state in `/var/data/dirwalker', ignoring files above `500000` Bytes in size
 
 TODO
 ----
